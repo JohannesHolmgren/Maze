@@ -1,5 +1,5 @@
 # Maze
-This program generates, solves and visualizes a maze.
+This program generates, solves and visualizes a maze. Knowledge in Algorithms and Data structures was used to optimize the program in order to handle larger mazes.
 
 === Maze generator ===
 The maze.py handles the generating of mazes. The maze is generated using a Minimal Spanning Tree (MST) with random edge-costs. A maze can be seen as a grid where it's possible to go to some neighbours and not to others. Using this way of seeing it, the grid-positions is converted to nodes in a graph, and the neighbour-neighbour relation is an edge. The edges are then given a random cost. An algorithm called Prim's algorithm is then run to create an MST. This ensures that all nodes have a path to all other nodes in the maze.

@@ -27,8 +27,13 @@ instead of the wall color where it should be. A possible approach would then be:
 Complexity becomes linear O(E) = O(V-1) for removing all walls that should be removed.
 
 """
-from telnetlib import DO
+# Standard libraries
+import math
+
+# External libraries
 import pygame
+
+# Internal libraries
 from Graph import Graph, Node
 from maze import get_maze
 from solver import Solver
@@ -133,81 +138,110 @@ def draw_maze(win):
         remove_wall(canvas, e)
     win.blit(canvas, (offset_x, offset_y))
 
-def draw_path(win, path, start, goal):
-    blit_pos = lambda pos: (int(pos[0]*BLOCK_SIZE+BLOCK_SIZE/2), int(pos[1]*BLOCK_SIZE+BLOCK_SIZE/2))
-    for node in path:
-        pygame.draw.circle(win, C_PATH, blit_pos(node.value), DOT_SIZE)
-    pygame.draw.circle(win, C_START, blit_pos(start), DOT_SIZE)
-    pygame.draw.circle(win, C_GOAL, blit_pos(goal), DOT_SIZE)
-
 def draw_path_curved(win, path, start, goal):
-    # Preparations of surfaces
-    topleft = pygame.Surface((BLOCK_SIZE-1, BLOCK_SIZE-1))
-    topright = pygame.Surface((BLOCK_SIZE-1, BLOCK_SIZE-1))
-    botleft = pygame.Surface((BLOCK_SIZE-1, BLOCK_SIZE-1))
-    botright = pygame.Surface((BLOCK_SIZE-1, BLOCK_SIZE-1))
-    horizontal = pygame.Surface((BLOCK_SIZE+2, BLOCK_SIZE-1))
-    vertical = pygame.Surface((BLOCK_SIZE-1, BLOCK_SIZE+2))
-    topleft.fill(C_CANVAS)
-    topright.fill(C_CANVAS)
-    botleft.fill(C_CANVAS)
-    botright.fill(C_CANVAS)
-    horizontal.fill(C_CANVAS)
-    vertical.fill(C_CANVAS)
-    pygame.draw.circle(topleft, C_PATH, (0, 0), int(BLOCK_SIZE/2+1), 2)
-    pygame.draw.circle(topright, C_PATH, (BLOCK_SIZE, 0), int(BLOCK_SIZE/2+1), 2)
-    pygame.draw.circle(botleft, C_PATH, (0, BLOCK_SIZE), int(BLOCK_SIZE/2+1), 2)
-    pygame.draw.circle(botright, C_PATH, (BLOCK_SIZE, BLOCK_SIZE), int(BLOCK_SIZE/2+1), 2)
-    pygame.draw.line(horizontal, C_PATH, (0, int(BLOCK_SIZE/2)-1), (BLOCK_SIZE+1, int(BLOCK_SIZE/2)-1), 2)
-    pygame.draw.line(vertical, C_PATH, (int(BLOCK_SIZE/2)-1, 0), (int(BLOCK_SIZE/2)-1, BLOCK_SIZE+1), 2)
-
-    # The rest
     curve = lambda p1, p2: (p2[0]-p1[0], p2[1]-p1[1])
     blit_pos = lambda pos: (int(pos[0]*BLOCK_SIZE+BLOCK_SIZE/2), int(pos[1]*BLOCK_SIZE+BLOCK_SIZE/2))
     for index, node in enumerate(path[1:-1], 1):
         dir = curve(path[index-1].value, path[index+1].value)
         if dir[0] == 0:
             # Vertical
-            win.blit(vertical, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]-1))
+            start = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE/2, BLOCK_SIZE*node.value[1]-1)
+            end   = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE/2, BLOCK_SIZE*node.value[1]-1 + BLOCK_SIZE)
+            pygame.draw.line(win, C_PATH, start, end, width=2)
+            # win.blit(vertical, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]-1))
         elif dir[1] == 0:
             # Horizontal
-            win.blit(horizontal, (BLOCK_SIZE*node.value[0]-1, BLOCK_SIZE*node.value[1]+1))
+            start = (BLOCK_SIZE*node.value[0]-1, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE/2)
+            end = (BLOCK_SIZE*node.value[0]-1 + BLOCK_SIZE, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE/2)
+            pygame.draw.line(win, C_PATH, start, end, width=2)
+            # win.blit(horizontal, (BLOCK_SIZE*node.value[0]-1, BLOCK_SIZE*node.value[1]+1))
         elif dir[0] == 1 and dir[1] == 1:
+            # One step down to left
             # Two cases: from vertical or from horizontal
             prev_dir = curve(path[index-1].value, node.value)
             if prev_dir[0] == 1:
                 # Horizontal into this block
-                win.blit(botleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = 0
+                stop_angle  = math.pi/2
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(botleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
             else:
                 # Vertical into this block
-                win.blit(topright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE, BLOCK_SIZE*node.value[1]+1)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = math.pi
+                stop_angle  = 3*math.pi/2
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(topright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
         elif dir[0] == -1 and dir[1] == 1:
+            # Down and to the left
             # Two cases: from vertical or from horizontal
             prev_dir = curve(path[index-1].value, node.value)
             if prev_dir[0] != 0:
                 # Horizontal into this block
-                win.blit(botright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = math.pi/2
+                stop_angle  = math.pi
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
             else:
                 # Vertical into this block
-                win.blit(topleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = -math.pi/2
+                stop_angle  = 0
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(topleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
         elif dir[0] == 1 and dir[1] == -1:
+            # Up and to the left
             # Two cases: from vertical or from horizontal
             prev_dir = curve(path[index-1].value, node.value)
             if prev_dir[0] != 0:
                 # Horizontal into this block
-                win.blit(topleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = -math.pi/2
+                stop_angle  = 0
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(topleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
             else:
                 # Vertical into this block
-                win.blit(botright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = math.pi/2
+                stop_angle  = math.pi
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(botright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
         else:
+            # Up and to the right
             # Two cases: from vertical or from horizontal
             prev_dir = curve(path[index-1].value, node.value)
             if prev_dir[0] != 0:
                 # Horizontal into this block
-                win.blit(topright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1 + BLOCK_SIZE, BLOCK_SIZE*node.value[1]+1)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = math.pi
+                stop_angle  = 3*math.pi/2
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(topright, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
             else:
                 # Vertical into this block
-                win.blit(botleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
+                mid = (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1 + BLOCK_SIZE)
+                blit_rect = pygame.Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE)
+                blit_rect.center = mid
+                start_angle = 0
+                stop_angle  = math.pi/2
+                pygame.draw.arc(win, C_PATH, blit_rect, start_angle, stop_angle, width=2)
+                # win.blit(botleft, (BLOCK_SIZE*node.value[0]+1, BLOCK_SIZE*node.value[1]+1))
     # Draw start and goal
        
 
@@ -259,6 +293,8 @@ while(RUNNING):
         DOT_SIZE = get_dot_size(BLOCK_SIZE, 3)
         g = get_maze(SIZE_X, SIZE_Y)
         draw_maze(win)
+    # Reucing size gives some bugs that must be fixed before impl.
+    # Mouse input
     if pygame.mouse.get_pressed()[0]:
         if not solver_started:
             pos = pygame.mouse.get_pos()
